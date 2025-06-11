@@ -1,0 +1,61 @@
+import { Server, Networks } from 'stellar-sdk';
+import {
+  isConnected as isFreighterConnected,
+  getPublicKey as getFreighterPublicKey,
+  signTransaction as signWithFreighter,
+} from '@stellar/freighter-api';
+
+const CONTRACT_ID = process.env.NEXT_PUBLIC_CONTRACT_ID;
+if (!CONTRACT_ID) {
+  throw new Error('Contract ID not found in environment variables');
+}
+
+async function initializeContract() {
+  const server = new Server('https://soroban-testnet.stellar.org');
+
+  try {
+    // Check if Freighter is connected
+    const isConnected = await isFreighterConnected();
+    if (!isConnected) {
+      throw new Error('Freighter wallet is not connected');
+    }
+
+    // Get public key
+    const { publicKey } = await getFreighterPublicKey();
+    if (!publicKey) {
+      throw new Error('No public key available');
+    }
+
+    // Get account
+    const account = await server.loadAccount(publicKey);
+
+    // Build transaction
+    const transaction = new TransactionBuilder(account, {
+      fee: '100000', // 0.01 XLM
+      networkPassphrase: Networks.TESTNET,
+    })
+      .addOperation(Operation.invokeHostFunction({
+        function: 'initialize',
+        parameters: [{ type: 'address', value: publicKey }],
+        contractId: CONTRACT_ID,
+      }))
+      .setTimeout(30)
+      .build();
+
+    // Sign transaction
+    const signedXDR = await signWithFreighter(transaction.toXDR(), {
+      networkPassphrase: Networks.TESTNET,
+    });
+
+    // Submit transaction
+    const submittedTx = await server.submitTransaction(signedXDR);
+    console.log('Contract initialized successfully:', submittedTx);
+    return submittedTx;
+
+  } catch (error) {
+    console.error('Error initializing contract:', error);
+    throw error;
+  }
+}
+
+initializeContract().catch(console.error);

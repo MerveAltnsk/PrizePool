@@ -1,0 +1,1 @@
+/mnt/c/Users/merve/OneDrive/Desktop/prize_pool_project/prize-pool-dapp/contract/target/wasm32-unknown-unknown/release/libcontract.rlib: /mnt/c/Users/merve/OneDrive/Desktop/prize_pool_project/prize-pool-dapp/contract/src/lib.rs
